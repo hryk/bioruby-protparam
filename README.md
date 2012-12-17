@@ -17,6 +17,7 @@ parameters instead of throwing query to Expasy protparam tool.
 ## Usage
 
 ```ruby
+    require 'bio'
     require 'bio-protparam'
     
     protparam = Bio::Protparam.new("MYNNYNLCHIRTINWEEIITGPSAMYSYVY...")
