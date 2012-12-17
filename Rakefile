@@ -13,15 +13,13 @@ require 'rake'
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "bio-protparam"
   gem.homepage = "http://github.com/hryk/bioruby-protparam"
   gem.license = "MIT"
   gem.summary = %Q{A Protparam compatible utility for BioRuby.}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.description = %Q{Bio::Protparam has same interface and function as Bio::Tools::Protparam class of BioPerl, except that it calculate parameters instead of throwing query to Expasy protparam tool.}
   gem.email = "hiroyuki@1vq9.com"
   gem.authors = ["hryk"]
-  # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
 
@@ -37,7 +35,6 @@ task :default => :test
 require 'rdoc/task'
 Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
-
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title = "bio-protparam #{version}"
   rdoc.rdoc_files.include('README*')

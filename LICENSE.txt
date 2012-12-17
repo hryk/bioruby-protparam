@@ -1,4 +1,4 @@
-Copyright (c) 2012 hryk
+Copyright (c) 2012 hryk <hiroyuki@1vq9.com>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
