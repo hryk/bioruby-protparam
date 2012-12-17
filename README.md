@@ -2,9 +2,11 @@
 
 [![Build Status](https://secure.travis-ci.org/hryk/bioruby-protparam.png)](http://travis-ci.org/hryk/bioruby-protparam)
 
-Full description goes here
+`bio-protparam` adds Bio::Protparam class. Bio::Protparam has same interface and
+function as Bio::Tools::Protparam class of BioPerl, except that it calculate
+parameters instead of throwing query to Expasy protparam tool.
 
-Note: this software is under active development!
+**Note: this software is under active development!**
 
 ## Installation
 
@@ -16,19 +18,17 @@ Note: this software is under active development!
 
 ```ruby
     require 'bio-protparam'
+    
+    protparam = Bio::Protparam.new("MYNNYNLCHIRTINWEEIITGPSAMYSYVY...")
+    # Return Mw
+    protparam.molecular_weight
+    # Return pI
+    protparam.theorettical_pI
+
 ```
 
-The API doc is online. For more code examples see the test files in
-the source tree.
-        
-## Project home page
-
-Information on the source tree, documentation, examples, issues and
-how to contribute, see
-
-  http://github.com/hryk/bioruby-protparam
-
-The BioRuby community is on IRC server: irc.freenode.org, channel: #bioruby.
+The API doc is on [rdoc.info](http://rdoc.info/github/hryk/bioruby-protparam/). For
+more code examples see the test files in the source tree.
 
 ## Cite
 
