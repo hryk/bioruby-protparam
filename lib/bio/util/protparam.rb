@@ -37,7 +37,7 @@ module Bio
       end
 
       self.class.class_eval do
-        include (if mode == :remote then Remote else Local end)
+        include(if mode == :remote then Remote else Local end)
       end
     end
 
@@ -46,9 +46,72 @@ module Bio
 
       attr_accessor :result
 
+      def self.cast_method(type)
+        case type.to_s
+        when "Fixnum"
+          ".to_i"
+        when "Float"
+          ".to_f"
+        when "String"
+          ""
+        else
+          ""
+        end
+      end
+
+      def self.extract_options(*args)
+        # label, class, regex
+        # label, class, regex, lambda
+        # label, lambda
+        label, type, regex, block = [nil, nil, nil, nil]
+        if args.size > 2
+          label = args.shift
+          type  = args.shift
+          if args.size > 1
+            regex, block = args
+          elsif args.size > 0
+            regex, block = if args.first.kind_of?(Regexp)
+                             [args.first, nil]
+                           elsif args.first.respond_to?(:call)
+                             [nil, args.first]
+                           end
+          end
+        end
+        [label, type, regex, block]
+      end
+
+      def self.rule(*args)
+        (label, type, regex, block) = extract_options(*args)
+        if regex && block
+          self.class_eval <<-METHOD
+          METHOD
+        elsif regex && !block
+          self.class_eval <<-METHOD
+            def #{label}
+              response = self.request
+              matched  = %r/#{regex}/.match(response)
+              if matched.size > 1
+                matched[1]#{cast_method(type)}
+              else
+                nil
+              end
+            end
+            METHOD
+        elsif !regex && block
+          wrapped_block = lambda {
+            response = self.request
+            block.call(response)
+          }
+          self.send(:define_method, label, &wrapped_block)
+        else
+          raise ArgumentError,
+            "Invalid arguments.rule(:label, :type, :regex) or rule(:label, :type, :lambda)"
+        end
+      end
+
       rule :num_neg, Fixnum, %r/<B>Total number of negatively charged residues.*?<\/B>\s*(\d*)/
       rule :num_pos, Fixnum, %r/<B>Total number of positively charged residues.*?<\/B>\s*(\d*)/
-      rule :amino_acid_number, Fixnum, %/<B>Number of amino acids:<\/B> (\d+)/
+      rule :amino_acid_number, Fixnum, %r/<B>Number of amino acids:<\/B> (\d+)/
       rule :total_atoms, Fixnum, %r/<B>Total number of atoms:<\/B>\s*(\d*)/
       rule :num_carbon, Fixnum, %r/Carbon\s+C\s+(\d+)/
       rule :num_hydrogen, Fixnum, %r/Hydrogen\s+H\s+(\d+)/
@@ -62,9 +125,6 @@ module Bio
       rule :stability, String, %r/This classifies the protein as\s(\w+)\./
       rule :alipatic_index, Float, %r/<B>Aliphatic index:<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
       rule :gravy, Float, %r/<B>Grand average of hydropathicity \(GRAVY\):<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
-      rule :aa_comp, lambda {
-
-      }
 
       def stable?
       end
@@ -74,8 +134,6 @@ module Bio
                       res = Net::HTTP.post_form(URI(PROTPARAM_URL),
                                                 {'sequence' => @seq.to_s})
                       res.body
-                    rescue
-                      fallback!
                     end
       end
 
@@ -85,32 +143,6 @@ module Bio
         end
       end
 
-      class << self
-
-        def rule(*args)
-          (label, type, regex, block) = extract_options args
-          if regex && block
-            self.instance_eval <<-METHOD
-            METHOD
-          elsif regex && !block
-            self.instance_eval <<-METHOD
-            def #{label}
-            end
-            METHOD
-          elsif !regex && block
-            self.instance_eval <<-METHOD
-            def #{label}
-            end
-            METHOD
-          else
-            raise InvalidArguments,
-              "Invalid arguments.rule(:label, :type, :regex) or rule(:label, :type, :lambda)"
-          end
-        end
-
-        def extract_options(*args)
-        end
-      end
     end
 
     module Local
