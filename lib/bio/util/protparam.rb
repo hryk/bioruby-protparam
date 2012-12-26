@@ -98,9 +98,10 @@ module Bio
             end
             METHOD
         elsif !regex && block
-          wrapped_block = lambda {
+          wrapped_block = Proc.new {|*method_args|
             response = self.request
-            block.call(response)
+            method_args.unshift response
+            block.call(method_args)
           }
           self.send(:define_method, label, &wrapped_block)
         else
@@ -126,7 +127,25 @@ module Bio
       rule :aliphatic_index, Float, %r/<B>Aliphatic index:<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
       rule :gravy, Float, %r/<B>Grand average of hydropathicity \(GRAVY\):<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
 
+      rule :half_life, Fixnum, proc {|response, category|
+        category ||= :mammalian
+        category_map = {
+          :mammalian => /\(mammalian\sreticulocytes,\sin\svitro\)/,
+          :yeast     => /\(yeast,\sin\svivo\)/,
+          :ecoli     => /\(Escherichia\scoli,\sin\svivo\)/
+        }
+        if /The\sestimated\shalf-life\sis:.*?
+          ([>\d]+)\shours\s(?=#{category_map[category]})/mx =~ response
+          half_life = $1
+          half_life.gsub!(/>/, '') if half_life.include?('>')
+          (half_life.to_f * 60)
+        else
+          raise "Parse Error!"
+        end
+      }
+
       def stable?
+        (stablity == 'stable')
       end
 
       def request
@@ -279,7 +298,7 @@ module Bio
         }
       }
 
-      # Estemated half-life of N-terminal residue of a protein.
+      # Estemated half-life (minutes) of N-terminal residue of a protein.
       HALFLIFE = {
         :ecoli => {
           :I => 600,
