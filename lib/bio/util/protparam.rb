@@ -123,7 +123,7 @@ module Bio
       rule :half_life, Float, %r/The estimated half-life is.*?(-{0,1}\d*\.{0,1}\d*)\s*hours \(mammalian reticulocytes, in vitro\)/
       rule :instability_index, Float, %r/The instability index \(II\) is computed to be (-{0,1}\d*\.{0,1}\d*)/
       rule :stability, String, %r/This classifies the protein as\s(\w+)\./
-      rule :alipatic_index, Float, %r/<B>Aliphatic index:<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
+      rule :aliphatic_index, Float, %r/<B>Aliphatic index:<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
       rule :gravy, Float, %r/<B>Grand average of hydropathicity \(GRAVY\):<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
 
       def stable?
