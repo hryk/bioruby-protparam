@@ -17,7 +17,11 @@ module Bio
     def setup
       data = File.read(File.join('test', 'data', 'uniprot', 'p53_human.uniprot'))
       uniprot = Bio::UniProt.new(data)
-      @obj = Bio::Protparam.new(uniprot.seq)
+      if ENV['PROTPARAM_TEST_REMOTE']
+        @obj = Bio::Protparam.new(uniprot.seq, :remote)
+      else
+        @obj = Bio::Protparam.new(uniprot.seq, :local)
+      end
     end
 
     def test_num_neg

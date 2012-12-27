@@ -1,13 +1,16 @@
 # encoding: utf-8
 #
 #
-# = bio/appl/protparam.rb - A Class to Calculate Protein Parameters.
+# = bio/util/protparam.rb - A Class to Calculate Protein Parameters.
 #
 # Copyright:: Copyright (C) 2012
 #             Hiroyuki Nakamura <hiroyuki@1vq9.com>
 # License::   The Ruby License
 #
+
 require 'rational'
+require 'net/http'
+require 'uri'
 
 module Bio
   ##
@@ -153,7 +156,7 @@ module Bio
       }
     }
 
-    # Estemated half-life of N-terminal residue of a protein.
+    # Estemated half-life (minutes) of N-terminal residue of a protein.
     HALFLIFE = {
       :ecoli => {
         :I => 600,
@@ -349,9 +352,9 @@ module Bio
       }
     }
 
-    def initialize(seq)
+    def initialize(seq, mode=:local)
+
       if seq.kind_of?(String) && Bio::Sequence.guess(seq) == Bio::Sequence::AA
-        # TODO: has issue.
         @seq = Bio::Sequence::AA.new seq
       elsif seq.kind_of? Bio::Sequence::AA
         @seq = seq
@@ -361,7 +364,148 @@ module Bio
       else
         raise ArgumentError, "sequence must be an AA sequence"
       end
+
+      self.class.class_eval do
+        include(if mode == :remote then Remote else Local end)
     end
+  end
+
+  module Remote
+    PROTPARAM_URL = 'http://web.expasy.org/cgi-bin/protparam/protparam'
+
+    attr_accessor :result
+
+    def self.cast_method(type)
+      case type.to_s
+      when "Fixnum"
+        ".to_i"
+      when "Float"
+        ".to_f"
+      when "String"
+        ""
+      else
+        ""
+      end
+    end
+
+    def self.extract_options(*args)
+      # label, class, regex
+      # label, class, regex, lambda
+      # label, lambda
+      label, type, regex, block = [nil, nil, nil, nil]
+      if args.size > 2
+        label = args.shift
+        type  = args.shift
+        if args.size > 1
+          regex, block = args
+        elsif args.size > 0
+          regex, block = if args.first.kind_of?(Regexp)
+                           [args.first, nil]
+                         elsif args.first.respond_to?(:call)
+                           [nil, args.first]
+                         end
+        end
+      end
+      [label, type, regex, block]
+    end
+
+    def self.rule(*args)
+      (label, type, regex, block) = extract_options(*args)
+      if regex && block
+        self.class_eval <<-METHOD
+        METHOD
+      elsif regex && !block
+        self.class_eval <<-METHOD
+            def #{label}
+              response = self.request
+              matched  = %r/#{regex}/.match(response)
+              if matched.size > 1
+                matched[1]#{cast_method(type)}
+              else
+                nil
+              end
+            end
+                METHOD
+      elsif !regex && block
+        wrapped_block = Proc.new {|*method_args|
+          response = self.request
+          method_args.unshift response
+          block.call(method_args)
+        }
+        self.send(:define_method, label, &wrapped_block)
+      else
+        raise ArgumentError,
+          "Invalid arguments.rule(:label, :type, :regex) or rule(:label, :type, :lambda)"
+      end
+    end
+
+    rule :num_neg, Fixnum, %r/<B>Total number of negatively charged residues.*?<\/B>\s*(\d*)/
+    rule :num_pos, Fixnum, %r/<B>Total number of positively charged residues.*?<\/B>\s*(\d*)/
+    rule :amino_acid_number, Fixnum, %r/<B>Number of amino acids:<\/B> (\d+)/
+    rule :total_atoms, Fixnum, %r/<B>Total number of atoms:<\/B>\s*(\d*)/
+    rule :num_carbon, Fixnum, %r/Carbon\s+C\s+(\d+)/
+    rule :num_hydrogen, Fixnum, %r/Hydrogen\s+H\s+(\d+)/
+    rule :num_nitro, Fixnum, %r/Nitrogen\s+N\s+(\d+)/
+    rule :num_oxygen, Fixnum, %r/Oxygen\s+O\s+(\d+)/
+    rule :num_sulphur, Fixnum, %r/Sulfur\s+S\s+(\d+)/
+    rule :molecular_weight, Float, %r/<B>Molecular weight:<\/B> (\d*\.{0,1}\d*)/
+    rule :theoretical_pI, Float,%r/<B>Theoretical pI:<\/B> (-{0,1}\d*\.{0,1}\d*)/
+    rule :half_life, Float, %r/The estimated half-life is.*?(-{0,1}\d*\.{0,1}\d*)\s*hours \(mammalian reticulocytes, in vitro\)/
+    rule :instability_index, Float, %r/The instability index \(II\) is computed to be (-{0,1}\d*\.{0,1}\d*)/
+    rule :stability, String, %r/This classifies the protein as\s(\w+)\./
+    rule :aliphatic_index, Float, %r/<B>Aliphatic index:<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
+    rule :gravy, Float, %r/<B>Grand average of hydropathicity \(GRAVY\):<\/B>\s*(-{0,1}\d*\.{0,1}\d*)/
+
+    rule :half_life, Fixnum, proc {|response, category|
+      category ||= :mammalian
+      category_map = {
+        :mammalian => /\(mammalian\sreticulocytes,\sin\svitro\)/,
+        :yeast     => /\(yeast,\sin\svivo\)/,
+        :ecoli     => /\(Escherichia\scoli,\sin\svivo\)/
+      }
+      if /The\sestimated\shalf-life\sis:.*?
+        ([>\d]+)\shours\s(?=#{category_map[category]})/mx =~ response
+        half_life = $1
+        half_life.gsub!(/>/, '') if half_life.include?('>')
+        (half_life.to_f * 60)
+      else
+        raise "Parse Error!"
+      end
+    }
+
+    rule :aa_comp, Fixnum, proc {|response, aa_code|
+      # Arg (R)  26         6.6%
+      aa_map = Hash[response.
+                    scan(/(?:[A-Z][a-z]{2}){0,1}\s\(([A-Z])\)\s*?\d+?\s*?(\d+.\d+)%/).
+                    map{|aa,val| [aa.to_sym, val.to_f] }]
+      if aa_code.nil?
+        aa_map
+      else
+        aa_map[aa_code.to_sym]
+      end
+    }
+
+    def stable?
+      (stablity == 'stable')
+    end
+
+    def request
+      @result ||= begin
+                    res = Net::HTTP.post_form(URI(PROTPARAM_URL),
+                                              {'sequence' => @seq.to_s})
+                    res.body
+                  end
+    end
+
+    def fallback!
+      self.class.class_eval do
+        include Local
+      end
+    end
+
+  end
+
+  module Local
 
     ##
     #
@@ -769,49 +913,50 @@ module Bio
     def round(num, ndigits=0)
       (num * (10 ** ndigits)).round().to_f / (10 ** ndigits).to_f
     end
-
-    # --------------------------------
-    # :section: References
-    #
-    #
-    # 1. Protein Identification and Analysis Tools on the ExPASy Server;
-    #    Gasteiger E., Hoogland C., Gattiker A., Duvaud S., Wilkins M.R.,
-    #    Appel R.D., Bairoch A.; (In) John M. Walker (ed): The Proteomics
-    #    Protocols Handbook, Humana Press (2005). pp. 571-607
-    # 2. Pace, C.N., Vajdos, F., Fee, L., Grimsley, G., and Gray, T. (1995)
-    #    How to measure and predict the molar absorption coefficient of a
-    #    protein. Protein Sci. 11, 2411-2423.
-    # 3. Edelhoch, H. (1967) Spectroscopic determination of tryptophan and
-    #    tyrosine in proteins. Biochemistry 6, 1948-1954.
-    # 4. Gill, S.C. and von Hippel, P.H. (1989) Calculation of protein
-    #    extinction coefficients from amino acid sequence data. Anal. Biochem.
-    #    182:319-326(1989).
-    # 5. Bachmair, A., Finley, D. and Varshavsky, A. (1986) In vivo half-life
-    #    of a protein is a function of its amino-terminal residue. Science 234,
-    #    179-186.
-    # 6. Gonda, D.K., Bachmair, A., Wunning, I., Tobias, J.W., Lane, W.S. and
-    #    Varshavsky, A. J. (1989) Universality and structure of the N-end rule.
-    #    J. Biol. Chem. 264, 16700-16712.
-    # 7. Tobias, J.W., Shrader, T.E., Rocap, G. and Varshavsky, A. (1991) The
-    #    N-end rule in bacteria. Science 254, 1374-1377.
-    # 8. Ciechanover, A. and Schwartz, A.L. (1989) How are substrates
-    #    recognized by the ubiquitin-mediated proteolytic system? Trends Biochem.
-    #    Sci. 14, 483-488.
-    # 9. Varshavsky, A. (1997) The N-end rule pathway of protein degradation.
-    #    Genes Cells 2, 13-28.
-    # 10. Guruprasad, K., Reddy, B.V.B. and Pandit, M.W. (1990) Correlation
-    #     between stability of a protein and its dipeptide composition: a novel
-    #     approach for predicting in vivo stability of a protein from its primary
-    #     sequence. Protein Eng. 4,155-161.
-    # 11. Ikai, A.J. (1980) Thermostability and aliphatic index of globular
-    #     proteins. J. Biochem. 88, 1895-1898.
-    # 12. Kyte, J. and Doolittle, R.F. (1982) A simple method for displaying
-    #     the hydropathic character of a protein. J. Mol. Biol. 157, 105-132.
-    # 13. Bjellqvist, B.,Hughes, G.J., Pasquali, Ch., Paquet, N., Ravier, F.,
-    #     Sanchez, J.-Ch., Frutiger, S. & Hochstrasser, D.F. The focusing positions
-    #     of polypeptides in immobilized pH gradients can be predicted from their
-    #     amino acid sequences. Electrophoresis 1993, 14, 1023-1031.
-    #
-    # --------------------------------
   end
+
+  # --------------------------------
+  # :section: References
+  #
+  #
+  # 1. Protein Identification and Analysis Tools on the ExPASy Server;
+  #    Gasteiger E., Hoogland C., Gattiker A., Duvaud S., Wilkins M.R.,
+  #    Appel R.D., Bairoch A.; (In) John M. Walker (ed): The Proteomics
+  #    Protocols Handbook, Humana Press (2005). pp. 571-607
+  # 2. Pace, C.N., Vajdos, F., Fee, L., Grimsley, G., and Gray, T. (1995)
+  #    How to measure and predict the molar absorption coefficient of a
+  #    protein. Protein Sci. 11, 2411-2423.
+  # 3. Edelhoch, H. (1967) Spectroscopic determination of tryptophan and
+  #    tyrosine in proteins. Biochemistry 6, 1948-1954.
+  # 4. Gill, S.C. and von Hippel, P.H. (1989) Calculation of protein
+  #    extinction coefficients from amino acid sequence data. Anal. Biochem.
+  #    182:319-326(1989).
+  # 5. Bachmair, A., Finley, D. and Varshavsky, A. (1986) In vivo half-life
+  #    of a protein is a function of its amino-terminal residue. Science 234,
+  #    179-186.
+  # 6. Gonda, D.K., Bachmair, A., Wunning, I., Tobias, J.W., Lane, W.S. and
+  #    Varshavsky, A. J. (1989) Universality and structure of the N-end rule.
+  #    J. Biol. Chem. 264, 16700-16712.
+  # 7. Tobias, J.W., Shrader, T.E., Rocap, G. and Varshavsky, A. (1991) The
+  #    N-end rule in bacteria. Science 254, 1374-1377.
+  # 8. Ciechanover, A. and Schwartz, A.L. (1989) How are substrates
+  #    recognized by the ubiquitin-mediated proteolytic system? Trends Biochem.
+  #    Sci. 14, 483-488.
+  # 9. Varshavsky, A. (1997) The N-end rule pathway of protein degradation.
+  #    Genes Cells 2, 13-28.
+  # 10. Guruprasad, K., Reddy, B.V.B. and Pandit, M.W. (1990) Correlation
+  #     between stability of a protein and its dipeptide composition: a novel
+  #     approach for predicting in vivo stability of a protein from its primary
+  #     sequence. Protein Eng. 4,155-161.
+  # 11. Ikai, A.J. (1980) Thermostability and aliphatic index of globular
+  #     proteins. J. Biochem. 88, 1895-1898.
+  # 12. Kyte, J. and Doolittle, R.F. (1982) A simple method for displaying
+  #     the hydropathic character of a protein. J. Mol. Biol. 157, 105-132.
+  # 13. Bjellqvist, B.,Hughes, G.J., Pasquali, Ch., Paquet, N., Ravier, F.,
+  #     Sanchez, J.-Ch., Frutiger, S. & Hochstrasser, D.F. The focusing positions
+  #     of polypeptides in immobilized pH gradients can be predicted from their
+  #     amino acid sequences. Electrophoresis 1993, 14, 1023-1031.
+  #
+  # --------------------------------
+end
 end
