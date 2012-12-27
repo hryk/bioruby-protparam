@@ -1,7 +1,7 @@
 # encoding: utf-8
 #
 #
-# = bio/appl/protparam.rb - A Class to Calculate Protein Parameters.
+# = bio/util/protparam.rb - A Class to Calculate Protein Parameters.
 #
 # Copyright:: Copyright (C) 2012
 #             Hiroyuki Nakamura <hiroyuki@1vq9.com>
