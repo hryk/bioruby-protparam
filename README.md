@@ -25,7 +25,19 @@ parameters instead of throwing query to Expasy protparam tool.
     protparam.molecular_weight
     # Return pI
     protparam.theorettical_pI
+```
 
+To use Expasy's protparam, pass a ':remote' option to constructor.
+
+```ruby
+    require 'bio'
+    require 'bio-protparam'
+    
+    protparam = Bio::Protparam.new("MYNNYNLCHIRTINWEEIITGPSAMYSYVY...", :remote)
+    # Return Mw
+    protparam.molecular_weight
+    # Return pI
+    protparam.theorettical_pI
 ```
 
 The API doc is on [rdoc.info](http://rdoc.info/github/hryk/bioruby-protparam/). For
