@@ -120,6 +120,28 @@ module Bio
       }
       assert_equal(correct_comp, @obj.aa_comp)
     end
-  end
 
+    def test_initialization
+      test_cases = {
+        'MYNNYNLCHIRTINWEEIITGPSAMYSYVY' => true,
+        'MA' => true,
+        # following sequences should be guessed as nucleotide sequence
+        # and should not be accepted
+        'AA' => false,
+        'ATGC' => false,
+      }
+      test_cases.each do |test_case, answer|
+        if answer
+          param = Bio::Protparam.new(test_case)
+          assert(param.kind_of?(Bio::Protparam))
+        else
+          assert_raises(ArgumentError) {
+            param = Bio::Protparam.new(test_case)
+          }
+        end
+      end                          
+    end
+
+  end
+  
 end

@@ -361,6 +361,11 @@ module Bio
       elsif seq.kind_of?(Bio::Sequence) &&
         seq.guess.kind_of?(Bio::Sequence::AA)
         @seq = seq.guess
+      elsif seq.kind_of?(String) && 
+          Bio::Sequence.guess(seq) == Bio::Sequence::NA
+        raise ArgumentError, 
+          "sequence must be an AA sequence" \
+          "(Input sequence was guessed as a nucleotide sequence)"
       else
         raise ArgumentError, "sequence must be an AA sequence"
       end
