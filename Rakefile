@@ -2,15 +2,22 @@
 
 require "bundler/gem_tasks"
 require "rake/testtask"
+require "rdoc/task"
+require "cane/rake_task"
+
 Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
   test.pattern = 'test/**/test_*.rb'
   test.verbose = true
 end
 
-task :default => :test
+desc "Run cane to check quality metrics"
+Cane::RakeTask.new(:quality) do |cane|
+  cane.abc_max = 10
+  cane.add_threshold 'coverage/covered_percent', :>=, 99
+  cane.no_style = false
+end
 
-require 'rdoc/task'
 Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
   rdoc.rdoc_dir = 'rdoc'
@@ -18,3 +25,5 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
+
+task :default => :test

@@ -30,12 +30,14 @@ Gem::Specification.new do |s|
       s.add_development_dependency "minitest", ">= 0"
       s.add_development_dependency "rdoc", "~> 3.12"
       s.add_development_dependency "bundler", "~> 1.3"
+      s.add_development_dependency "cane"
       s.add_development_dependency "rake"
     else
       s.add_dependency "bio", ">= 1.4.2"
       s.add_dependency "minitest", ">= 0"
       s.add_dependency "rdoc", "~> 3.12"
       s.add_dependency "bundler", "~> 1.3"
+      s.add_dependency "cane"
       s.add_dependency "rake"
     end
   else
@@ -43,6 +45,7 @@ Gem::Specification.new do |s|
     s.add_dependency "minitest", ">= 0"
     s.add_dependency "rdoc", "~> 3.12"
     s.add_dependency "bundler", "~> 1.3"
+    s.add_dependency "cane"
     s.add_dependency "rake"
   end
 end
