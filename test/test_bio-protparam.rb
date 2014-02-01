@@ -13,7 +13,7 @@ require 'helper'
 
 # libraries needed for the tests
 module Bio
-  class TestProtparam < MiniTest::Unit::TestCase
+  class TestProtparam < MiniTest::Test
     def setup
       data = File.read(File.join('test', 'data', 'uniprot', 'p53_human.uniprot'))
       uniprot = Bio::UniProt.new(data)
@@ -139,9 +139,9 @@ module Bio
             param = Bio::Protparam.new(test_case)
           }
         end
-      end                          
+      end
     end
 
   end
-  
+
 end

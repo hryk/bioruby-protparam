@@ -1,19 +1,5 @@
 # rcov generated
-coverage
 coverage.data
-
-# rdoc generated
-rdoc
-
-# yard generated
-doc
-.yardoc
-
-# bundler
-.bundle
-
-# jeweler generated
-pkg
 
 # Have editor/IDE/OS specific files you need to ignore? Consider using a global gitignore: 
 #
@@ -49,4 +35,26 @@ pkg
 #*.rbc
 # Ignore Gemfile.lock for gems. See http://yehudakatz.com/2010/12/16/clarifying-the-roles-of-the-gemspec-and-gemfile/
 Gemfile.lock
-*.gemspec
+
+### github/gitignores Ruby
+
+*.gem
+*.rbc
+.bundle
+.config
+coverage
+InstalledFiles
+lib/bundler/man
+pkg
+rdoc
+spec/reports
+test/tmp
+test/version_tmp
+tmp
+
+# YARD artifacts
+.yardoc
+_yardoc
+doc/
+
+
