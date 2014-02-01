@@ -1,3 +1,5 @@
+require "English"
+
 Gem::Specification.new do |s|
   s.name = "bio-protparam"
   s.version = "0.2.0"
@@ -14,20 +16,7 @@ Gem::Specification.new do |s|
     "LICENSE.txt",
     "README.md"
   ]
-  s.files = [
-    ".document",
-    ".travis.yml",
-    "Gemfile",
-    "LICENSE.txt",
-    "README.md",
-    "Rakefile",
-    "VERSION",
-    "lib/bio-protparam.rb",
-    "lib/bio/util/protparam.rb",
-    "test/data/uniprot/p53_human.uniprot",
-    "test/helper.rb",
-    "test/test_bio-protparam.rb"
-  ]
+  s.files         = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
   s.homepage = "http://github.com/hryk/bioruby-protparam"
   s.licenses = ["MIT"]
   s.rubygems_version = "2.2.1"
