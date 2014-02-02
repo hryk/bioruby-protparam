@@ -23,6 +23,10 @@ Gem::Specification.new do |s|
   s.summary = "A Protparam compatible utility for BioRuby."
 
 
+  if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+    s.add_runtime_dependency "rubysl", "~> 2.0.15"
+  end
+
   if s.respond_to? :specification_version
     s.specification_version = 4
 
@@ -33,8 +37,8 @@ Gem::Specification.new do |s|
       s.add_development_dependency "bundler", "~> 1.3"
       s.add_development_dependency "rake"
 
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
-        s.add_runtime_dependency "rubysl", "~> 2.0.15"
+      if !defined?(RUBY_ENGINE) || RUBY_ENGINE != "rbx"
+        s.add_dependency "cane"
       end
 
     else
@@ -43,7 +47,7 @@ Gem::Specification.new do |s|
       s.add_dependency "rdoc", "~> 3.12"
       s.add_dependency "bundler", "~> 1.3"
       s.add_dependency "rake"
-      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+      if !defined?(RUBY_ENGINE) || RUBY_ENGINE != "rbx"
         s.add_dependency "cane"
       end
     end
@@ -53,8 +57,8 @@ Gem::Specification.new do |s|
     s.add_dependency "rdoc", "~> 3.12"
     s.add_dependency "bundler", "~> 1.3"
     s.add_dependency "rake"
-    if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
-      s.add_dependency "cane"
-    end
+      if !defined?(RUBY_ENGINE) || RUBY_ENGINE != "rbx"
+        s.add_dependency "cane"
+      end
   end
 end
