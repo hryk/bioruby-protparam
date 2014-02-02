@@ -22,6 +22,7 @@ Gem::Specification.new do |s|
   s.rubygems_version = "2.2.1"
   s.summary = "A Protparam compatible utility for BioRuby."
 
+
   if s.respond_to? :specification_version
     s.specification_version = 4
 
@@ -30,22 +31,30 @@ Gem::Specification.new do |s|
       s.add_development_dependency "minitest", ">= 0"
       s.add_development_dependency "rdoc", "~> 3.12"
       s.add_development_dependency "bundler", "~> 1.3"
-      s.add_development_dependency "cane"
       s.add_development_dependency "rake"
+
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+        s.add_runtime_dependency "rubysl", "~> 2.0.15"
+      end
+
     else
       s.add_dependency "bio", ">= 1.4.2"
       s.add_dependency "minitest", ">= 0"
       s.add_dependency "rdoc", "~> 3.12"
       s.add_dependency "bundler", "~> 1.3"
-      s.add_dependency "cane"
       s.add_dependency "rake"
+      if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+        s.add_dependency "cane"
+      end
     end
   else
     s.add_dependency "bio", ">= 1.4.2"
     s.add_dependency "minitest", ">= 0"
     s.add_dependency "rdoc", "~> 3.12"
     s.add_dependency "bundler", "~> 1.3"
-    s.add_dependency "cane"
     s.add_dependency "rake"
+    if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+      s.add_dependency "cane"
+    end
   end
 end
